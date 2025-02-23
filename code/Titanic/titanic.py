@@ -20,7 +20,7 @@ def analyze_survival_rates():
     total_survival.plot(kind='pie', labels=['遇难', '生还'], autopct='%.1f%%', colors=['lightcoral', 'lightgreen'])
     plt.title('总体生还率')
 
-    # 2. 性别与生还率 (修改为水平柱状图)
+    # 2. 性别与生还率 
     plt.subplot(232)
     survival_by_sex = train_data.groupby('Sex')['Survived'].mean()
     ax = survival_by_sex.plot(kind='barh', color=['lightcoral', 'lightgreen'])
