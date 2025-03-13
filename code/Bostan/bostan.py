@@ -1,53 +1,69 @@
 import numpy as np
 import pandas as pd
 from sklearn.metrics import r2_score
-from sklearn.linear_model import SGDRegressor
+
+class LinearRegression:
+    def __init__(self, method, times=1000, learn_rate=0.01):
+        self.times = times
+        self.learn_times = learn_rate
+        self.method = method
+        self.means = None
+        self.std = None
+        self.theta = None
+
+    def standardization(self, X):
+        if self.means is None or self.std is None:
+            self.means = np.mean(X, axis=0)
+            self.std = np.std(X, axis=0)
+            return (X - self.means) / self.std
+        else:
+            return (X - self.means) / self.std
+
+    def normal_function(self, X, y):
+        return np.linalg.inv(X.T @ X) @ X.T @ y
+
+    def gradient_descent(self, X, y):
+        m = len(y)
+        n = X.shape[1]
+        theta = np.zeros((n, 1))
+        for i in range(self.times):
+            theta = theta - self.learn_times * (1 / m) * X.T @ (X @ theta - y)
+        return theta
+
+    def fit(self, X, y):
+        X = np.array(X)
+        y = np.array(y)
+        X_std = self.standardization(X)
+        X_with_bias = np.c_[np.ones(X_std.shape[0]), X_std]
+        if self.method == "normal":
+            self.theta = self.normal_function(X_with_bias, y)
+        elif self.method == "gradient_descent":
+            self.theta = self.gradient_descent(X_with_bias, y)
+        return self.theta
+
+    def predict(self, X):
+        X = np.array(X)
+        X_std = self.standardization(X)
+        X_with_bias = np.c_[np.ones(X_std.shape[0]), X_std]
+        return X_with_bias @ self.theta
+
+    def score(self, X, y):
+        y_pred = self.predict(X)
+        y = np.array(y)
+        return r2_score(y, y_pred)
 
 
-def standardization(x):
-    means = np.mean(x, axis=0)
-    std = np.std(x, axis=0)
-    x = (x - means) / std
-    return x
-
-def normal_function(x, y):
-    theta = np.linalg.inv(x.T@x)@x.T@y
-    return theta
-
-def gradient_descent(x, y, a, times):
-    m = len(y)
-    n = x.shape[1]
-    theta = np.zeros((n, 1))
-    for i in range(times):
-        theta = theta - a * (1 / m) * x.T @ (x @ theta - y)
-    return theta
 data = pd.read_csv('BostonHousing.csv')
 cols = data.shape[1]
-x = data.iloc[:,:-1]
+X = data.iloc[:,:-1]
 y = data.iloc[:,cols-1:cols]
-x = standardization(x)
-x2 = x.copy()
-x.insert(0, 'Ones', 1)
-x = np.matrix(x.values)
-y = np.matrix(y.values)
-theta1 = gradient_descent(x, y, 0.02, 3000)
-theta2 = normal_function(x, y)
-sgd_reg = SGDRegressor(
-    loss='squared_error',
-    learning_rate='constant',
-    eta0=0.01,
-    max_iter=1000,
-    tol=1e-3,
-    random_state=42
-)
-y2 = np.ravel(y)
-sgd_reg.fit(x2, y2)
-p1 = x @ theta1
-p2 = x @ theta2
-p3 = sgd_reg.predict(x2)
-print(r2_score(p1.A, y.A))
-print(r2_score(p2.A, y.A))
-print(r2_score(p3, y.A))
+normal = LinearRegression(method="normal", times=200000, learn_rate=0.02)
+normal.fit(X, y)
+print(f"正规方程R2={normal.score(X, y)}")
+gd = LinearRegression(method="gradient_descent", times=200000, learn_rate=0.02)
+gd.fit(X, y)
+print(f"梯度下降R2={gd.score(X, y)}")
+
 
 
 
